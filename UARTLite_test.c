@@ -17,6 +17,14 @@ int main()
 {
 	int UartLite_status;
 
+	// Tx/Rx buffers
+	u8 Tx_buff[16];
+
+	int Index;
+
+	// Tx/Rx byte counts
+	unsigned int Tx_bytes_sent;
+
 	// instance of UART Lite core
 	XUartLite UartLite0;
 
@@ -24,28 +32,29 @@ int main()
 
     // perform initialization tests
     UartLite_status = XUartLite_Initialize(&UartLite0, XPAR_UARTLITE_0_DEVICE_ID);
-    if (XST_SUCCESS == UartLite_status)
+    if (UartLite_status != XST_SUCCESS)
     {
-    	print("UartLite initialization PASS\n\r");
+    	return XST_FAILURE;
     }
-    else{
-    	print("UartLite initialization FAIL\n\r");
-    }
-    while(XUartLite_IsSending(&UartLite0) == 1);  // wait until all characters read out so don't overwrite terminal
 
     // perform self-test tests
     UartLite_status = XUartLite_SelfTest(&UartLite0);
-    if (XST_SUCCESS == UartLite_status)
+    if (UartLite_status != XST_SUCCESS)
     {
-    	print("UartLite self-test PASS\n\r");
+    	return XST_FAILURE;
     }
-    else{
-    	print("UartLite self-test FAIL\n\r");
-    }
-    while(XUartLite_IsSending(&UartLite0) == 1);
 
-    print("Hello World\n\r");
-    print("Successfully ran Hello World application\n\r");
+	for (Index = 0; Index < 16; Index++) {
+		Tx_buff[Index] = Index;
+	}
+
+    // send some data
+    // since not in interrupt mode, max data sent per function call is 16 bytes (size of FIFOs)
+    Tx_bytes_sent = XUartLite_Send(&UartLite0, Tx_buff, 16);
+
+
+
     cleanup_platform();
     return 0;
 }
+
