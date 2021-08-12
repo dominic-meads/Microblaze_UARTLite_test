@@ -1,37 +1,79 @@
-/*
- * UartLite_test.c: simple test application for the UART Lite core
- *
- * This application does some testing of the UART Lite core and 
- * sends the entire english alphabet at 9600 Buad, 8 data bits, no parity,
+/******************************************************************************/
+/**
 *
- */
+* File: UARTLite_test.c
+*
+* Description: example of minimal Tx testing of the UART Lite core v2.0, and sends   
+*              the entire english alphabet at 9600 Buad, 8 data bits, no parity,
+*
+* Notes:
+*
+*
+* MODIFICATION HISTORY:
+* <pre>
+* Ver   Who  Date	 Changes
+* ----- ---- -------- -----------------------------------------------
+* 1.00a DM   8/12/21  First release
+* </pre>
+******************************************************************************/
+
+/***************************** Include Files *********************************/
 
 #include "platform.h"
+#include "xil_printf.h"
 #include "xstatus.h"
 #include "xparameters.h"
 #include "xuartlite.h"
 
+/************************** Constant Definitions *****************************/
 
 #define UARTLITE_DEVICE_ID  XPAR_UARTLITE_0_DEVICE_ID
-#define DATA_SIZE  26  // 26 letters in alphabet
-#define BUFF_SIZE  16  // max size of FIFOs
+
+// 26 letters in alphabet
+#define TX_DATA_SIZE  26  
+
+// max size in non-interrput mode
+#define TX_BUFF_SIZE  16  
+
+/**************************** Type Definitions *******************************/
 
 
-int UARTLite_Init_SelfTest(u16 Device_ID);
+/***************** Macros (Inline Functions) Definitions *********************/
 
-int SendData(u8 *DataPointer, u8 *DataBufferPointer);
 
+/************************** Function Prototypes ******************************/
+
+int UARTLite_Init_SelfTest(u16 DeviceID);
+
+int SendData(u8 *TxDataPointer, u8 *TxDataBufferPointer);
+
+/************************** Variable Definitions *****************************/
 
 // Data to send
-u8 TxData[DATA_SIZE];
+u8 TxData[TX_DATA_SIZE];
 
-// Tx/Rx buffers
-u8 TxBuff[BUFF_SIZE];
+// Tx buffers
+u8 TxBuff[TX_BUFF_SIZE];
 
 // instance of UART Lite core
 XUartLite UartLite0;
 
 
+/*****************************************************************************/
+/**
+*
+* Description: main function to test out the UART Lite
+*
+*
+* Arguments:
+*
+*
+* Returns: XST_SUCCESS if successful, otherwise XST_FAILURE.
+*
+*
+* Notes: 		
+*
+******************************************************************************/
 int main()
 {
 	int UartLiteStatus;
@@ -42,24 +84,41 @@ int main()
   UartLiteStatus = UARTLite_Init_SelfTest(UARTLITE_DEVICE_ID);
 
   // intialize buffer with alphabet data
-  for(int i = 0; i < DATA_SIZE; i++)
+  for(int i = 0; i < TX_DATA_SIZE; i++)
   {
     TxData[i] = 65 + i;  // start at decimal 65 which is ASCII 'A'
   }
   
   TxStatus = SendData(TxData, TxBuff);
 
+  xil_printf("UART Lite Tx test successfull\n\r");
   cleanup_platform();
-  return 0;
+  return XST_SUCCESS;
 }
 
 
-int UARTLite_Init_SelfTest(u16 Device_ID)
+/*****************************************************************************/
+/**
+*
+* Description: Initializes UART Lite and does a self test
+*
+*
+* Arguments: DeviceID is the DeviceId is the Device ID of the UartLite and is the
+*		         XPAR_<uartlite_instance>_DEVICE_ID value from xparameters.h.
+*
+*
+* Returns: XST_SUCCESS if successful, otherwise XST_FAILURE.
+*
+*
+* Notes: 		
+*
+******************************************************************************/
+int UARTLite_Init_SelfTest(u16 DeviceID)
 {
   int Status;
   
   // perform initialization tests
-  Status = XUartLite_Initialize(&UartLite0, Device_ID);
+  Status = XUartLite_Initialize(&UartLite0, DeviceID);
   if (Status != XST_SUCCESS)
   {
     return XST_FAILURE;
@@ -75,29 +134,47 @@ int UARTLite_Init_SelfTest(u16 Device_ID)
   return XST_SUCCESS;
 }
 
-int SendData(u8 *DataPointer, u8 *DataBufferPointer)
+
+/*****************************************************************************/
+/**
+*
+* Description: This function is responsible for data transmission
+*
+*
+* Arguments: DataPointer is a ptr to the data that needs to be sent out
+*            DataBufferPointer is the pointer the 16 byte Tx buffer
+*
+*
+* Returns: XST_SUCCESS if successful, otherwise XST_FAILURE.
+*
+*
+* Notes: 		
+*
+******************************************************************************/
+int SendData(u8 *TxDataPointer, u8 *TxDataBufferPointer)
 {
   unsigned int TxBytesSent;
   
   // max data sent per function call is 16 bytes (size of FIFOs)
-  while (TxBytesSent != DATA_SIZE)
+  while (TxBytesSent != TX_DATA_SIZE)
   { 
     // put only 16 bytes of data into Tx_buff
-    for(int i = 0; i < BUFF_SIZE; i++)
+    for(int i = 0; i < TX_BUFF_SIZE; i++)
     {
-      DataBufferPointer[i] = DataPointer[TxBytesSent+i];
+      TxDataBufferPointer[i] = TxDataPointer[TxBytesSent+i];
     }
 
   // Send buffer
-    TxBytesSent += XUartLite_Send(&UartLite0, DataBufferPointer, BUFF_SIZE);
+    TxBytesSent += XUartLite_Send(&UartLite0, TxDataBufferPointer, TX_BUFF_SIZE);
   }
     
   // make sure all data was sent out
-  if (TxBytesSent != DATA_SIZE)
+  if (TxBytesSent != TX_DATA_SIZE)
   {
    return XST_FAILURE;
   }
-
+  
+  xil_printf("\n\r");
   return XST_SUCCESS;
 }  
 
